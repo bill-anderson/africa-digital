@@ -157,6 +157,24 @@
     stroke-width: 2;
   }
 
+  /* Small island markers */
+  .island-marker {
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+  .island-marker:hover circle {
+    stroke: var(--text);
+    stroke-width: 1.5;
+  }
+  .island-marker.dimmed { opacity: 0.3; }
+  .island-marker text {
+    font-family: var(--font);
+    font-size: 7px;
+    font-weight: 600;
+    fill: var(--text-muted);
+    pointer-events: none;
+  }
+
   /* MAP STATS BAR */
   .map-stats {
     position: absolute;
@@ -565,6 +583,37 @@ function drawMap() {
     .on('mousemove', handleMouseMove)
     .on('mouseleave', handleMouseLeave)
     .on('click', handleMapClick);
+
+  // Add markers for tiny island nations
+  const islandMarkers = [
+    { iso: 'SYC', lon: 55.45, lat: -4.68, label: 'Seychelles' }
+  ];
+
+  const markerGroup = svg.append('g').attr('id', 'island-markers');
+  islandMarkers.forEach(m => {
+    const [cx, cy] = projection([m.lon, m.lat]);
+    const record = allData.find(r => r.iso3 === m.iso && r.facility === currentFacility);
+    const color = record ? SCORE_COLORS[record.score] : '#EEEDE9';
+    const mg = markerGroup.append('g')
+      .attr('class', 'island-marker')
+      .attr('data-iso', m.iso)
+      .on('mouseenter', function(event) {
+        const feat = geoData.features.find(f => f.properties.iso3 === m.iso);
+        if (feat) handleMouseEnter(event, feat);
+      })
+      .on('mousemove', handleMouseMove)
+      .on('mouseleave', handleMouseLeave)
+      .on('click', function(event) {
+        const feat = geoData.features.find(f => f.properties.iso3 === m.iso);
+        if (feat) handleMapClick(event, feat);
+      });
+    mg.append('circle')
+      .attr('cx', cx).attr('cy', cy).attr('r', 5)
+      .attr('fill', color).attr('stroke', '#fff').attr('stroke-width', 0.5);
+    mg.append('text')
+      .attr('x', cx - 8).attr('y', cy - 8)
+      .text(m.label);
+  });
 }
 
 function updateMap() {
@@ -587,6 +636,19 @@ function updateMap() {
       el.classed('dimmed', !filteredIsos.has(iso));
     } else {
       el.classed('dimmed', false);
+    }
+  });
+
+  // Update island markers
+  d3.selectAll('.island-marker').each(function() {
+    const iso = d3.select(this).attr('data-iso');
+    const record = allData.find(r => r.iso3 === iso && r.facility === currentFacility);
+    const color = record ? SCORE_COLORS[record.score] : '#EEEDE9';
+    d3.select(this).select('circle').attr('fill', color);
+    if (currentScoreFilter !== 'all') {
+      d3.select(this).classed('dimmed', !filteredIsos.has(iso));
+    } else {
+      d3.select(this).classed('dimmed', false);
     }
   });
 }
