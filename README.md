@@ -1,2 +1,4 @@
 # africa-digital
-Mapping digital transformation in Africa
+
+Mapping digital transformation in Africa.
+
